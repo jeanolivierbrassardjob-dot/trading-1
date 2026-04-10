@@ -1,0 +1,23 @@
+{
+  "tickers": [
+    "XLK",
+    "SPMO",
+    "SCHD"
+  ],
+  "weights": [
+    0.5,
+    0.4,
+    0.1
+  ],
+  "method": "Markowitz Max-Sharpe",
+  "metrics_10y": {
+    "label": "MaxSharpe",
+    "CAGR": 26.26,
+    "Sharpe": 1.029,
+    "Sortino": 1.794,
+    "MaxDD": -23.22,
+    "Calmar": 1.131,
+    "WinR_M": 63.8,
+    "Ann_Vol": 19.34
+  }
+}
