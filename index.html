@@ -213,6 +213,8 @@ a{color:inherit;text-decoration:none;}
 let px = {};
 let countdown = 300;
 let cdTimer;
+let lastSetupTime = 0;
+const SETUP_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
 const FALLBACK = {xau:4757,nas:25151,oil:98.67,eur:1.1732,jpy:159.20,btc:72139,vix:20.93,dxy:98.60};
 const YF_SYMS = ['XAUUSD=X','^NDX','CL=F','EURUSD=X','JPY=X','BTC-USD','^VIX','DX-Y.NYB'];
@@ -224,6 +226,12 @@ window.onload = () => {
   loadNews('forex gold oil markets geopolitical', null);
   loadCalendar();
   startCD();
+  // News refresh toutes les 30 minutes
+  setInterval(()=>loadNews('forex gold oil markets geopolitical',null), 30*60*1000);
+  // Setups refresh toutes les 4 heures (aligné sur bougie H4)
+  setInterval(()=>{
+    if(Date.now()-lastSetupTime >= SETUP_INTERVAL_MS && Object.keys(px).length>0) fetchSetups();
+  }, 60*1000);
 };
 
 function tick(){
@@ -317,6 +325,7 @@ function updateSent(){
 
 // ── SETUPS VIA VERCEL ─────────────────────────────────────────────────
 async function fetchSetups(){
+  lastSetupTime = Date.now();
   document.getElementById('setups-wrap').innerHTML='<div class="loading-card"><span class="spin"></span>Analyse IA Claude en cours...</div>';
   try{
     const r=await fetch('/api/setups',{
@@ -331,8 +340,11 @@ async function fetchSetups(){
 }
 
 async function regenSetups(){
-  if(Object.keys(px).length>0){await fetchSetups();toast('Setups régénérés');}
-  else toast('Attends les prix...');
+  if(Object.keys(px).length>0){
+    lastSetupTime = 0; // force refresh
+    await fetchSetups();
+    toast('Setups régénérés — prochain refresh dans 4h');
+  } else toast('Attends les prix...');
 }
 
 function renderSetups(setups){
@@ -434,7 +446,13 @@ function renderFallbackCal(){
   document.getElementById('cal').innerHTML=E.map(e=>`<div class="crow"><div class="ct">${e.t} EST</div><div class="cn">${e.n} <span class="cc">${e.c}</span></div><div class="i${e.i}">${e.i==='h'?'●●●':e.i==='m'?'●●○':'●○○'}</div></div>`).join('');
 }
 
-function refreshAll(){fetchPrices();loadNews('forex gold oil markets geopolitical',null);loadCalendar();startCD();toast('Données mises à jour');}
+function refreshAll(){
+  fetchPrices();
+  loadNews('forex gold oil markets geopolitical',null);
+  loadCalendar();
+  startCD();
+  toast('Prix et news mis à jour');
+}
 function toast(msg){const t=document.getElementById('tel');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 </script>
 </body>
