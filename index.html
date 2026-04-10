@@ -91,6 +91,8 @@ a{color:inherit;text-decoration:none;}
 .sl-lbl{font-size:11px;color:rgba(240,82,82,.6);}
 .sl-price{font-size:14px;font-weight:500;color:var(--red);font-variant-numeric:tabular-nums;}
 .setup-ts{font-size:10px;color:var(--muted);margin-top:10px;text-align:right;}
+.setup-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.stag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--s2);border:1px solid var(--b2);color:var(--muted);}
 .news-feed{display:flex;flex-direction:column;}
 .ni{padding:13px 0;border-bottom:1px solid var(--b);display:flex;gap:12px;align-items:flex-start;}
 .ni:last-child{border-bottom:none;}
@@ -98,12 +100,17 @@ a{color:inherit;text-decoration:none;}
 .dh{background:var(--red);}.dm{background:var(--amber);}.dl{background:var(--faint);}
 .nbody{flex:1;min-width:0;}
 .nhl{font-size:13px;color:var(--text);line-height:1.55;}
+.nhl a{color:var(--text);}
+.nhl a:hover{color:var(--green);}
 .nmeta{font-size:10px;color:var(--muted);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;}
 .ntag{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--s2);border:1px solid var(--b);color:var(--muted);}
+.nfltrs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.nf{font-size:10px;letter-spacing:.06em;padding:4px 10px;border-radius:20px;border:1px solid var(--b);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--mono);}
+.nf.on{background:var(--bdim);border-color:rgba(91,141,238,.3);color:var(--blue);}
 .cal{display:flex;flex-direction:column;}
 .crow{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--b);font-size:12px;}
 .crow:last-child{border-bottom:none;}
-.ct{color:var(--muted);min-width:68px;flex-shrink:0;}
+.ct{color:var(--muted);min-width:70px;flex-shrink:0;}
 .cn{flex:1;color:var(--text);}
 .cc{color:var(--muted);font-size:11px;}
 .ih{color:var(--red);font-size:10px;}.im{color:var(--amber);font-size:10px;}.il{color:var(--muted);font-size:10px;}
@@ -117,6 +124,7 @@ a{color:inherit;text-decoration:none;}
 .toast.show{opacity:1;}
 .spin{display:inline-block;width:10px;height:10px;border:1.5px solid var(--faint);border-top-color:var(--green);border-radius:50%;animation:rot .7s linear infinite;margin-right:6px;vertical-align:middle;}
 @keyframes rot{to{transform:rotate(360deg);}}
+.loading-card{background:var(--surface);border:1px solid var(--b);border-radius:14px;padding:28px 20px;text-align:center;color:var(--muted);font-size:13px;}
 </style>
 </head>
 <body>
@@ -139,7 +147,7 @@ a{color:inherit;text-decoration:none;}
     <div class="sent-sub">Environnement global</div>
     <div class="sent-tag c-a" id="stag">Chargement...</div>
   </div>
-  <div class="sent-txt" id="stxt"><span class="spin"></span>Récupération Yahoo Finance...</div>
+  <div class="sent-txt" id="stxt"><span class="spin"></span>Récupération des données...</div>
 </div>
 
 <div class="lbl">Pouls des marchés</div>
@@ -168,24 +176,34 @@ a{color:inherit;text-decoration:none;}
   </div>
 </div>
 
-<div class="lbl">3 meilleurs setups H4 — zones scale in basées sur prix live</div>
+<div class="lbl">3 meilleurs setups H4 — analyse IA temps réel</div>
 <div class="setups" id="setups-wrap">
-  <div style="background:var(--surface);border:1px solid var(--b);border-radius:14px;padding:28px 20px;text-align:center;">
-    <span class="spin"></span><span style="font-size:13px;color:var(--muted)">Calcul des setups...</span>
-  </div>
+  <div class="loading-card"><span class="spin"></span>Analyse IA en cours...</div>
 </div>
 
 <div class="lbl">Nouvelles financières</div>
-<div class="news-feed" id="nfeed"></div>
+<div class="nfltrs">
+  <button class="nf on" onclick="loadNews('forex gold oil markets geopolitical',this)">Tout</button>
+  <button class="nf" onclick="loadNews('forex EUR USD JPY',this)">Forex</button>
+  <button class="nf" onclick="loadNews('gold XAU safe haven',this)">Or</button>
+  <button class="nf" onclick="loadNews('Bitcoin BTC crypto',this)">Crypto</button>
+  <button class="nf" onclick="loadNews('crude oil WTI OPEC',this)">Pétrole</button>
+  <button class="nf" onclick="loadNews('geopolitical conflict war',this)">Géo</button>
+</div>
+<div class="news-feed" id="nfeed">
+  <div class="loading-card"><span class="spin"></span>Chargement des nouvelles...</div>
+</div>
 
 <div class="lbl">Calendrier économique</div>
-<div class="cal" id="cal"></div>
+<div class="cal" id="cal">
+  <div class="loading-card"><span class="spin"></span>Chargement...</div>
+</div>
 
 <div class="footer">
   <div class="finfo" id="updt">—</div>
   <div class="btns">
     <button class="btn" onclick="refreshAll()">↻ Refresh</button>
-    <button class="btn btn-p" onclick="refreshSetups()">⚡ Setups</button>
+    <button class="btn btn-p" onclick="regenSetups()">⚡ Setups IA</button>
   </div>
 </div>
 </div>
@@ -196,266 +214,142 @@ let px = {};
 let countdown = 300;
 let cdTimer;
 
-// Vrais prix FTMO/OANDA avril 2026 comme fallback
-const FALLBACK = {
-  xau: 4757, nas: 25151, oil: 98.67,
-  eur: 1.1732, jpy: 159.20, btc: 72139,
-  vix: 20.93, dxy: 98.60
-};
-
-// Yahoo Finance symbols corrects
-const YF_SYMS = [
-  'XAUUSD=X',  // Or spot - correspond à XAUUSD OANDA
-  '^NDX',      // Nasdaq 100 Index - correspond à NAS100
-  'CL=F',      // WTI Crude futures - correspond à WTICOUSD
-  'EURUSD=X',  // EUR/USD
-  'JPY=X',     // USD/JPY
-  'BTC-USD',   // Bitcoin
-  '^VIX',      // VIX
-  'DX-Y.NYB'  // DXY
-];
-
+const FALLBACK = {xau:4757,nas:25151,oil:98.67,eur:1.1732,jpy:159.20,btc:72139,vix:20.93,dxy:98.60};
+const YF_SYMS = ['XAUUSD=X','^NDX','CL=F','EURUSD=X','JPY=X','BTC-USD','^VIX','DX-Y.NYB'];
 const PROXY = 'https://api.allorigins.win/get?url=';
 
 window.onload = () => {
-  tick(); setInterval(tick, 1000);
-  renderCal(); renderNews();
-  fetchPrices(); startCD();
+  tick(); setInterval(tick,1000);
+  fetchPrices();
+  loadNews('forex gold oil markets geopolitical', null);
+  loadCalendar();
+  startCD();
 };
 
-function tick() {
+function tick(){
   document.getElementById('clk').textContent =
     new Date().toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
-function startCD() {
-  countdown = 300; clearInterval(cdTimer);
-  cdTimer = setInterval(() => {
+function startCD(){
+  countdown=300; clearInterval(cdTimer);
+  cdTimer=setInterval(()=>{
     countdown--;
-    const m = Math.floor(countdown/60), s = countdown%60;
-    document.getElementById('nxt').textContent = `↻ ${m}:${s.toString().padStart(2,'0')}`;
-    document.getElementById('rfill').style.width = (countdown/300*100)+'%';
-    if (countdown <= 0) refreshAll();
-  }, 1000);
+    const m=Math.floor(countdown/60),s=countdown%60;
+    document.getElementById('nxt').textContent=`↻ ${m}:${s.toString().padStart(2,'0')}`;
+    document.getElementById('rfill').style.width=(countdown/300*100)+'%';
+    if(countdown<=0) refreshAll();
+  },1000);
 }
 
-async function fetchPrices() {
-  document.getElementById('dsrc').textContent = 'Yahoo Finance...';
-  const symsStr = YF_SYMS.join(',');
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/spark?symbols=${encodeURIComponent(symsStr)}&range=1d&interval=5m`;
-  const quoteUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symsStr)}`;
-
-  try {
-    const proxyUrl = PROXY + encodeURIComponent(quoteUrl);
-    const r = await fetch(proxyUrl, {signal: AbortSignal.timeout(8000)});
-    const wrapper = await r.json();
-    const data = JSON.parse(wrapper.contents);
-    const quotes = data?.quoteResponse?.result || [];
-
-    if (!quotes.length) { useFallback('Yahoo sans données'); return; }
-
-    const byS = {};
-    quotes.forEach(q => { byS[q.symbol] = q; });
-
-    const get = (sym) => {
-      const q = byS[sym];
-      if (!q?.regularMarketPrice) return null;
-      return { p: q.regularMarketPrice, c: q.regularMarketChangePercent?.toFixed(2) };
-    };
-
-    const xau = get('XAUUSD=X');
-    const nas = get('^NDX');
-    const oil = get('CL=F');
-    const eur = get('EURUSD=X');
-    const jpy = get('JPY=X');
-    const btc = get('BTC-USD');
-    const vix = get('^VIX');
-    const dxy = get('DX-Y.NYB');
-
-    let loaded = 0;
-    if (xau) { px.xau=xau.p; setTile('xau', fmtP(xau.p,2,true), xau.c); loaded++; }
-    if (nas) { px.nas=nas.p; setTile('nas', fmtP(nas.p,2,true), nas.c); loaded++; }
-    if (oil) { px.oil=oil.p; setTile('oil', fmtP(oil.p,2), oil.c); loaded++; }
-    if (eur) { px.eur=eur.p; setTile('eur', fmtP(eur.p,4), eur.c); loaded++; }
-    if (jpy) { px.jpy=jpy.p; setTile('jpy', fmtP(jpy.p,3), jpy.c); loaded++; }
-    if (btc) { px.btc=btc.p; setTile('btc', fmtP(btc.p,0,true), btc.c); loaded++; }
-
-    if (vix) {
-      px.vix=vix.p;
-      document.getElementById('p-vix').textContent = vix.p.toFixed(2);
-      document.getElementById('vix-read').textContent = vixTxt(vix.p);
-    }
-    if (dxy) {
-      px.dxy=dxy.p;
-      document.getElementById('p-dxy').textContent = dxy.p.toFixed(2);
-      document.getElementById('dxy-read').textContent = dxyTxt(dxy.p);
-    }
-
-    if (loaded >= 4) {
-      document.getElementById('dsrc').textContent = 'Live · Yahoo Finance';
-      document.getElementById('updt').textContent = 'Mis à jour ' + new Date().toLocaleTimeString('fr-CA');
-      updateSent(); buildSetups();
-    } else {
-      useFallback('Données partielles');
-    }
-  } catch(e) {
-    useFallback('Mode démo');
-  }
+// ── PRICES ────────────────────────────────────────────────────────────
+async function fetchPrices(){
+  document.getElementById('dsrc').textContent='Yahoo Finance...';
+  try{
+    const url=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(YF_SYMS.join(','))}`;
+    const r=await fetch(PROXY+encodeURIComponent(url),{signal:AbortSignal.timeout(8000)});
+    const w=await r.json();
+    const d=JSON.parse(w.contents);
+    const quotes=d?.quoteResponse?.result||[];
+    if(!quotes.length){useFallback();return;}
+    const bS={};
+    quotes.forEach(q=>{bS[q.symbol]=q;});
+    const g=(s)=>{const q=bS[s];return q?.regularMarketPrice?{p:q.regularMarketPrice,c:q.regularMarketChangePercent?.toFixed(2)}:null;};
+    const xau=g('XAUUSD=X'),nas=g('^NDX'),oil=g('CL=F'),eur=g('EURUSD=X'),jpy=g('JPY=X'),btc=g('BTC-USD'),vix=g('^VIX'),dxy=g('DX-Y.NYB');
+    let loaded=0;
+    if(xau){px.xau=xau.p;setT('xau',fmt(xau.p,2,true),xau.c);loaded++;}
+    if(nas){px.nas=nas.p;setT('nas',fmt(nas.p,0,true),nas.c);loaded++;}
+    if(oil){px.oil=oil.p;setT('oil',fmt(oil.p,2),oil.c);loaded++;}
+    if(eur){px.eur=eur.p;setT('eur',fmt(eur.p,4),eur.c);loaded++;}
+    if(jpy){px.jpy=jpy.p;setT('jpy',fmt(jpy.p,3),jpy.c);loaded++;}
+    if(btc){px.btc=btc.p;setT('btc',fmt(btc.p,0,true),btc.c);loaded++;}
+    if(vix){px.vix=vix.p;document.getElementById('p-vix').textContent=vix.p.toFixed(2);document.getElementById('vix-read').textContent=vixTxt(vix.p);}
+    if(dxy){px.dxy=dxy.p;document.getElementById('p-dxy').textContent=dxy.p.toFixed(2);document.getElementById('dxy-read').textContent=dxyTxt(dxy.p);}
+    if(loaded>=4){
+      document.getElementById('dsrc').textContent='Live · Yahoo Finance';
+      document.getElementById('updt').textContent='Mis à jour '+new Date().toLocaleTimeString('fr-CA');
+      updateSent(); fetchSetups();
+    } else useFallback();
+  }catch{useFallback();}
 }
 
-function useFallback(reason) {
-  px = {...FALLBACK};
-  setTile('xau', fmtP(px.xau,2,true), null);
-  setTile('nas', fmtP(px.nas,0,true), null);
-  setTile('oil', fmtP(px.oil,2), null);
-  setTile('eur', fmtP(px.eur,4), null);
-  setTile('jpy', fmtP(px.jpy,3), null);
-  setTile('btc', fmtP(px.btc,0,true), null);
-  document.getElementById('p-vix').textContent = px.vix.toFixed(2);
-  document.getElementById('vix-read').textContent = vixTxt(px.vix);
-  document.getElementById('p-dxy').textContent = px.dxy.toFixed(2);
-  document.getElementById('dxy-read').textContent = dxyTxt(px.dxy);
-  document.getElementById('dsrc').textContent = reason || 'Mode démo';
-  updateSent(); buildSetups();
+async function fetchBTC(){
+  try{
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
+    const d=await r.json();
+    if(d.bitcoin){px.btc=d.bitcoin.usd;setT('btc',fmt(d.bitcoin.usd,0,true),(d.bitcoin.usd_24h_change||0).toFixed(2));}
+  }catch{}
 }
 
-function fmtP(n, dec, large) {
-  if (!n && n!==0) return '—';
-  if (large && n > 1000) return n.toLocaleString('fr-CA',{maximumFractionDigits:dec>2?2:dec});
+function useFallback(){
+  px={...FALLBACK};
+  setT('xau',fmt(px.xau,2,true),null);setT('nas',fmt(px.nas,0,true),null);
+  setT('oil',fmt(px.oil,2),null);setT('eur',fmt(px.eur,4),null);
+  setT('jpy',fmt(px.jpy,3),null);setT('btc',fmt(px.btc,0,true),null);
+  document.getElementById('p-vix').textContent=px.vix.toFixed(2);
+  document.getElementById('vix-read').textContent=vixTxt(px.vix);
+  document.getElementById('p-dxy').textContent=px.dxy.toFixed(2);
+  document.getElementById('dxy-read').textContent=dxyTxt(px.dxy);
+  document.getElementById('dsrc').textContent='Mode démo';
+  updateSent(); fetchSetups();
+  fetchBTC();
+}
+
+function fmt(n,dec,large){
+  if(!n&&n!==0)return'—';
+  if(large&&n>1000)return n.toLocaleString('fr-CA',{maximumFractionDigits:dec>2?2:dec});
   return parseFloat(n).toFixed(dec);
 }
-
-function setTile(id, val, chg) {
-  const pe=document.getElementById('p-'+id), ce=document.getElementById('c-'+id);
-  if (pe && val) pe.textContent = val;
-  if (ce && chg!=null) {
-    ce.textContent = (parseFloat(chg)>=0?'+':'')+chg+'%';
-    ce.className = 'tc '+(parseFloat(chg)>=0?'up':'dn');
-  }
+function setT(id,val,chg){
+  const pe=document.getElementById('p-'+id),ce=document.getElementById('c-'+id);
+  if(pe&&val)pe.textContent=val;
+  if(ce&&chg!=null){ce.textContent=(parseFloat(chg)>=0?'+':'')+chg+'%';ce.className='tc '+(parseFloat(chg)>=0?'up':'dn');}
 }
-
-function vixTxt(v) {
-  return v<15?'Très bas — excellent pour swing.':
-         v<20?'Sous 20 — marché calme, favorable.':
-         v<25?'20–25 — légère prudence.':
-         v<30?'25–30 — réduire les tailles.':'Au-dessus 30 — éviter nouvelles positions.';
-}
-function dxyTxt(d) {
-  return d<100?'DXY faible — vent de dos Or & risque.':
-         d<104?'DXY neutre — surveiller.':'DXY fort — pression sur Or.';
-}
-
-function updateSent() {
-  const v=px.vix||21, d=px.dxy||99;
+function vixTxt(v){return v<15?'Très bas — excellent pour swing.':v<20?'Sous 20 — marché calme, favorable.':v<25?'20–25 — légère prudence.':v<30?'25–30 — réduire les tailles.':'Au-dessus 30 — éviter nouvelles positions.';}
+function dxyTxt(d){return d<100?'DXY faible — vent de dos Or & risque.':d<104?'DXY neutre — surveiller.':'DXY fort — pression sur Or.';}
+function updateSent(){
+  const v=px.vix||21,d=px.dxy||99;
   const el=document.getElementById('sent'),tag=document.getElementById('stag'),txt=document.getElementById('stxt');
-  if (v<20&&d<102){
-    el.className='sent s-bull';tag.className='sent-tag c-g';tag.textContent='Risk On';
-    txt.innerHTML=`VIX à <strong>${v.toFixed(1)}</strong> — marché calme. <strong>Or et actifs risqués favorisés.</strong> Bon contexte pour swing H4.`;
-  } else if (v>25||d>105){
-    el.className='sent s-bear';tag.className='sent-tag c-r';tag.textContent='Risk Off';
-    txt.innerHTML=`VIX à <strong>${v.toFixed(1)}</strong> — mode défensif. <strong>Réduire les tailles, éviter positions agressives.</strong>`;
-  } else {
-    el.className='sent s-neut';tag.className='sent-tag c-a';tag.textContent='Neutre';
-    txt.innerHTML=`VIX <strong>${v.toFixed(1)}</strong>, DXY <strong>${d.toFixed(2)}</strong> — attends un catalyseur avant d'entrer.`;
-  }
+  if(v<20&&d<102){el.className='sent s-bull';tag.className='sent-tag c-g';tag.textContent='Risk On';txt.innerHTML=`VIX à <strong>${v.toFixed(1)}</strong> — marché calme. <strong>Or et actifs risqués favorisés.</strong>`;}
+  else if(v>25||d>105){el.className='sent s-bear';tag.className='sent-tag c-r';tag.textContent='Risk Off';txt.innerHTML=`VIX à <strong>${v.toFixed(1)}</strong> — mode défensif. <strong>Réduire les tailles.</strong>`;}
+  else{el.className='sent s-neut';tag.className='sent-tag c-a';tag.textContent='Neutre';txt.innerHTML=`VIX <strong>${v.toFixed(1)}</strong>, DXY <strong>${d.toFixed(2)}</strong> — attends un catalyseur.`;}
 }
 
-function buildSetups() {
-  const xau=px.xau||4757, nas=px.nas||25151, oil=px.oil||98.67,
-        eur=px.eur||1.1732, btc=px.btc||72139, jpy=px.jpy||159.20,
-        vix=px.vix||20.93, dxy=px.dxy||98.60;
-
-  const setups = [
-    {
-      symbol:'XAUUSD', dir: dxy<102?'bull':'wait',
-      rating: dxy<102?(vix<22?8.5:7.5):6.0,
-      why: dxy<102
-        ?`DXY à <strong>${dxy.toFixed(2)}</strong> — dollar faible, vent de dos structurel. Or à <strong>${xau.toLocaleString('fr-CA',{maximumFractionDigits:0})}</strong>. Structure H4 haussière intacte, pullback en cours.`
-        :`Or en consolidation. DXY à <strong>${dxy.toFixed(2)}</strong> — attends signal de direction clair.`,
-      si1:`${Math.round(xau*0.9940).toLocaleString('fr-CA')}–${Math.round(xau*0.9955).toLocaleString('fr-CA')}`,
-      si1n:'Retracement 0.5 Fibo + support H4',
-      si2:`${Math.round(xau*0.9890).toLocaleString('fr-CA')}–${Math.round(xau*0.9905).toLocaleString('fr-CA')}`,
-      si2n:'Support structure majeur H4',
-      sl: Math.round(xau*0.9850).toLocaleString('fr-CA'),
-    },
-    {
-      symbol:'NAS100', dir: vix<25?'bull':'wait',
-      rating: vix<20?7.5:vix<25?6.5:5.0,
-      why: vix<22
-        ?`NAS100 à <strong>${nas.toLocaleString('fr-CA',{maximumFractionDigits:0})}</strong>. VIX à <strong>${vix.toFixed(1)}</strong> — momentum H4 haussier, bon contexte pour longs indices.`
-        :`VIX à <strong>${vix.toFixed(1)}</strong> — volatilité réduit la fiabilité. Attends stabilisation.`,
-      si1:`${Math.round(nas*0.9925).toLocaleString('fr-CA')}–${Math.round(nas*0.9950).toLocaleString('fr-CA')}`,
-      si1n:'Zone support H4 + retest EMA',
-      si2:`${Math.round(nas*0.9870).toLocaleString('fr-CA')}–${Math.round(nas*0.9890).toLocaleString('fr-CA')}`,
-      si2n:'Support majeur H4 précédent',
-      sl: Math.round(nas*0.9810).toLocaleString('fr-CA'),
-    },
-    {
-      symbol:'EURUSD', dir: dxy>100?'bear':'bull',
-      rating: 7.0,
-      why: dxy>100
-        ?`DXY à <strong>${dxy.toFixed(2)}</strong> — pression USD maintenue. EURUSD à <strong>${eur.toFixed(4)}</strong>, structure H4 baissière. Short sur rejet résistance.`
-        :`DXY faible — EURUSD sous pression haussière. Long sur support H4 confirmé.`,
-      si1: dxy>100
-        ?`${(eur+0.0018).toFixed(4)}–${(eur+0.0028).toFixed(4)}`
-        :`${(eur-0.0018).toFixed(4)}–${(eur-0.0008).toFixed(4)}`,
-      si1n: dxy>100?'Résistance H4 — short sur rejet':'Support H4 — long sur confirmation',
-      si2: dxy>100
-        ?`${(eur+0.0035).toFixed(4)}–${(eur+0.0048).toFixed(4)}`
-        :`${(eur-0.0032).toFixed(4)}–${(eur-0.0022).toFixed(4)}`,
-      si2n:'Zone OB + confluence structure',
-      sl: dxy>100?(eur+0.0065).toFixed(4):(eur-0.0065).toFixed(4),
-    },
-    {
-      symbol:'WTICOUSD', dir: oil>90?'bear':'bull',
-      rating: oil>95?7.0:oil<70?6.5:5.5,
-      why: oil>90
-        ?`WTI à <strong>${oil.toFixed(2)}</strong> — niveau élevé post-crise Ormuz. Tension US-Iran = volatilité élevée. Setup court sur résistance potentiel.`
-        :`WTI à <strong>${oil.toFixed(2)}</strong> — pas de setup H4 clair. Surveille OPEC.`,
-      si1: oil>90
-        ?`${(oil*1.008).toFixed(2)}–${(oil*1.015).toFixed(2)}`
-        :`${(oil*0.992).toFixed(2)}–${(oil*0.996).toFixed(2)}`,
-      si1n: oil>90?'Résistance H4 — short sur rejet':'Support structure H4',
-      si2: oil>90
-        ?`${(oil*1.020).toFixed(2)}–${(oil*1.028).toFixed(2)}`
-        :`${(oil*0.984).toFixed(2)}–${(oil*0.988).toFixed(2)}`,
-      si2n:'Zone OB + confluence H1',
-      sl: oil>90?(oil*0.970).toFixed(2):(oil*0.975).toFixed(2),
-    },
-    {
-      symbol:'BTCUSD', dir:'wait', rating:4.5,
-      why:`Bitcoin à <strong>${btc.toLocaleString('fr-CA',{maximumFractionDigits:0})}</strong> — consolidation en cours. Pas de setup H4 clair. Attends breakout confirmé.`,
-      si1:`${Math.round(btc*0.985).toLocaleString('fr-CA')}–${Math.round(btc*0.990).toLocaleString('fr-CA')}`,
-      si1n:'Si breakout haussier H4 confirmé',
-      si2:`${Math.round(btc*0.975).toLocaleString('fr-CA')}–${Math.round(btc*0.980).toLocaleString('fr-CA')}`,
-      si2n:'Support structure bas du range',
-      sl: Math.round(btc*0.965).toLocaleString('fr-CA'),
-    },
-  ];
-
-  const top3 = setups.sort((a,b)=>b.rating-a.rating).slice(0,3);
-  renderSetups(top3);
+// ── SETUPS VIA VERCEL ─────────────────────────────────────────────────
+async function fetchSetups(){
+  document.getElementById('setups-wrap').innerHTML='<div class="loading-card"><span class="spin"></span>Analyse IA Claude en cours...</div>';
+  try{
+    const r=await fetch('/api/setups',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prices:px})
+    });
+    const d=await r.json();
+    if(d.setups?.length) renderSetups(d.setups);
+    else buildFallbackSetups();
+  }catch{buildFallbackSetups();}
 }
 
-function renderSetups(setups) {
-  const now = new Date().toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('setups-wrap').innerHTML = setups.map(s => {
-    const rC = s.rating>=8?'var(--green)':s.rating>=6.5?'var(--amber)':'var(--muted)';
-    const rL = s.rating>=8.5?'Excellent':s.rating>=7.5?'Bon setup':s.rating>=6?'Correct':'Faible';
-    const dots = Array.from({length:10},(_,i)=>`<div class="rdot ${i<Math.round(s.rating)?'rd-on':'rd-off'}"></div>`).join('');
-    const dTag = s.dir==='bull'?'<span class="dtag dt-bull">LONG</span>':s.dir==='bear'?'<span class="dtag dt-bear">SHORT</span>':'<span class="dtag dt-wait">ATTENDRE</span>';
-    const sC = s.dir==='bull'?'sym-bull':s.dir==='bear'?'sym-bear':'sym-wait';
-    return `<div class="setup-card ${s.dir}">
+async function regenSetups(){
+  if(Object.keys(px).length>0){await fetchSetups();toast('Setups régénérés');}
+  else toast('Attends les prix...');
+}
+
+function renderSetups(setups){
+  const now=new Date().toLocaleTimeString('fr-CA',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('setups-wrap').innerHTML=setups.slice(0,3).map(s=>{
+    const rC=s.rating>=8?'var(--green)':s.rating>=6.5?'var(--amber)':'var(--muted)';
+    const rL=s.rating>=8.5?'Excellent':s.rating>=7.5?'Bon setup':s.rating>=6?'Correct':'Faible';
+    const dots=Array.from({length:10},(_,i)=>`<div class="rdot ${i<Math.round(s.rating)?'rd-on':'rd-off'}"></div>`).join('');
+    const dir=s.direction||s.dir||'wait';
+    const dTag=dir==='bull'?'<span class="dtag dt-bull">LONG</span>':dir==='bear'?'<span class="dtag dt-bear">SHORT</span>':'<span class="dtag dt-wait">ATTENDRE</span>';
+    const sC=dir==='bull'?'sym-bull':dir==='bear'?'sym-bear':'sym-wait';
+    const tags=(s.tags||[]).map(t=>`<span class="stag">${t}</span>`).join('');
+    return`<div class="setup-card ${dir}">
       <div class="setup-hdr">
-        <div>
-          <div class="setup-sym ${sC}">${s.symbol}</div>
-          <div class="setup-dir">${dTag}<span class="tftag">H4</span></div>
-        </div>
+        <div><div class="setup-sym ${sC}">${s.symbol}</div><div class="setup-dir">${dTag}<span class="tftag">H4</span></div></div>
         <div class="rating-wrap">
-          <div style="display:flex;align-items:baseline;gap:3px;">
-            <span class="rating-score" style="color:${rC}">${s.rating}</span>
-            <span class="rating-denom">/10</span>
-          </div>
+          <div style="display:flex;align-items:baseline;gap:3px;"><span class="rating-score" style="color:${rC}">${s.rating}</span><span class="rating-denom">/10</span></div>
           <div class="rdots">${dots}</div>
           <div class="rlbl" style="color:${rC}">${rL}</div>
         </div>
@@ -463,63 +357,84 @@ function renderSetups(setups) {
       <div class="setup-why">${s.why}</div>
       <div class="si-box">
         <div class="si-title">Zones scale in — 50% à la fois</div>
-        <div class="si-row">
-          <div><div class="si-lbl">Scale In 1 — 50%</div><div class="si-note">${s.si1n}</div></div>
-          <div class="si-price">${s.si1}</div>
-        </div>
-        <div class="si-row">
-          <div><div class="si-lbl">Scale In 2 — 50%</div><div class="si-note">${s.si2n}</div></div>
-          <div class="si-price">${s.si2}</div>
-        </div>
-        <div class="sl-row">
-          <div class="sl-lbl">Stop Loss zone</div>
-          <div class="sl-price">${s.sl}</div>
-        </div>
+        <div class="si-row"><div><div class="si-lbl">Scale In 1 — 50%</div><div class="si-note">${s.scalein1_note||''}</div></div><div class="si-price">${s.scalein1_zone||''}</div></div>
+        <div class="si-row"><div><div class="si-lbl">Scale In 2 — 50%</div><div class="si-note">${s.scalein2_note||''}</div></div><div class="si-price">${s.scalein2_zone||''}</div></div>
+        <div class="sl-row"><div class="sl-lbl">Stop Loss zone</div><div class="sl-price">${s.sl_zone||''}</div></div>
       </div>
-      <div class="setup-ts">Généré à ${now} · prix Yahoo Finance</div>
+      ${tags?`<div class="setup-tags">${tags}</div>`:''}
+      <div class="setup-ts">Généré à ${now} · Claude AI · prix live</div>
     </div>`;
   }).join('');
 }
 
-function renderNews() {
+function buildFallbackSetups(){
+  const xau=px.xau||4757,nas=px.nas||25151,oil=px.oil||98.67,eur=px.eur||1.1732,vix=px.vix||21,dxy=px.dxy||99;
+  renderSetups([
+    {symbol:'XAUUSD',direction:dxy<102?'bull':'wait',rating:dxy<102?8.5:6.0,why:`DXY à <strong>${dxy.toFixed(2)}</strong> — structure H4 haussière intacte. Pullback en cours.`,scalein1_zone:`${Math.round(xau*0.9940).toLocaleString()}–${Math.round(xau*0.9955).toLocaleString()}`,scalein1_note:'Retracement 0.5 Fibo + support H4',scalein2_zone:`${Math.round(xau*0.9890).toLocaleString()}–${Math.round(xau*0.9905).toLocaleString()}`,scalein2_note:'Support structure majeur',sl_zone:Math.round(xau*0.9850).toLocaleString(),tags:['Setup actif','H4']},
+    {symbol:'NAS100',direction:vix<25?'bull':'wait',rating:vix<20?7.5:6.0,why:`NAS100 à <strong>${nas.toLocaleString()}</strong>. VIX <strong>${vix.toFixed(1)}</strong> — momentum H4 haussier.`,scalein1_zone:`${Math.round(nas*0.9925).toLocaleString()}–${Math.round(nas*0.9950).toLocaleString()}`,scalein1_note:'Support H4 + retest EMA',scalein2_zone:`${Math.round(nas*0.9870).toLocaleString()}–${Math.round(nas*0.9890).toLocaleString()}`,scalein2_note:'Support majeur H4',sl_zone:Math.round(nas*0.9810).toLocaleString(),tags:['H4','Indices']},
+    {symbol:'EURUSD',direction:dxy>100?'bear':'bull',rating:7.0,why:`DXY ${dxy.toFixed(2)} — EURUSD ${eur.toFixed(4)}, structure H4 ${dxy>100?'baissière':'haussière'}.`,scalein1_zone:dxy>100?`${(eur+0.0018).toFixed(4)}–${(eur+0.0028).toFixed(4)}`:`${(eur-0.0018).toFixed(4)}–${(eur-0.0008).toFixed(4)}`,scalein1_note:dxy>100?'Résistance H4 — short':'Support H4 — long',scalein2_zone:dxy>100?`${(eur+0.0035).toFixed(4)}–${(eur+0.0048).toFixed(4)}`:`${(eur-0.0032).toFixed(4)}–${(eur-0.0022).toFixed(4)}`,scalein2_note:'Zone OB + confluence',sl_zone:dxy>100?(eur+0.0065).toFixed(4):(eur-0.0065).toFixed(4),tags:['Forex','H4']},
+  ]);
+}
+
+// ── NEWS VIA VERCEL ───────────────────────────────────────────────────
+async function loadNews(q, btn){
+  if(btn){document.querySelectorAll('.nf').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+  document.getElementById('nfeed').innerHTML='<div class="loading-card"><span class="spin"></span>Chargement...</div>';
+  try{
+    const r=await fetch(`/api/news?q=${encodeURIComponent(q)}`);
+    const d=await r.json();
+    if(d.articles?.length) renderNews(d.articles);
+    else renderFallbackNews();
+  }catch{renderFallbackNews();}
+}
+
+function renderNews(arts){
+  document.getElementById('nfeed').innerHTML=arts.slice(0,8).map(a=>{
+    const i=imp(a.title+' '+(a.description||'')),tg=ntag(a.title),ago=timeAgo(a.published);
+    return`<div class="ni"><div class="ndot d${i}"></div><div class="nbody"><div class="nhl"><a href="${a.url}" target="_blank" rel="noopener">${a.title}</a></div><div class="nmeta"><span>${a.source||'—'}</span><span>${ago}</span>${tg?`<span class="ntag">${tg}</span>`:''}</div></div></div>`;
+  }).join('');
+}
+
+function renderFallbackNews(){
   const F=[
-    {h:'Or touche 4,777$ — tensions Moyen-Orient + dollar faible soutiennent la demande', s:'Bloomberg', t:'45min', i:'h', g:'XAUUSD'},
-    {h:'US-Iran : cessez-le-feu 2 semaines — pétrole chute de 13% puis rebondit', s:'Reuters', t:'1h', i:'h', g:'WTI'},
-    {h:'Fed — discours Powell attendu, marché pricant 2 baisses de taux en 2026', s:'CNBC', t:'2h', i:'h', g:'MACRO'},
-    {h:'NAS100 au-dessus de 25,000 — earnings tech ce soir comme catalyseur', s:'WSJ', t:'3h', i:'h', g:'NAS100'},
-    {h:'Bitcoin reprend $72K — ceasefire Iran booste risk-on global', s:'CoinDesk', t:'4h', i:'m', g:'BTCUSD'},
-    {h:'DXY sous 99 — dollar sous pression malgré rebond intraday', s:'FT', t:'5h', i:'m', g:'DXY'},
-    {h:'BOJ surveille USDJPY — intervention possible au-dessus de 160', s:'Nikkei', t:'6h', i:'m', g:'USDJPY'},
-    {h:'Strait of Hormuz partiellement rouvert — pétrole WTI ~98$', s:'OilPrice', t:'7h', i:'h', g:'WTI'},
+    {h:'Or touche 4,777$ — tensions Moyen-Orient + dollar faible',s:'Bloomberg',t:'45min',i:'h',g:'XAUUSD'},
+    {h:'US-Iran : cessez-le-feu — pétrole rebondit vers 98$',s:'Reuters',t:'1h',i:'h',g:'WTI'},
+    {h:'Fed — Powell attendu, marché pricant 2 baisses de taux',s:'CNBC',t:'2h',i:'h',g:'MACRO'},
+    {h:'NAS100 au-dessus de 25,000 — earnings tech comme catalyseur',s:'WSJ',t:'3h',i:'h',g:'NAS100'},
+    {h:'Bitcoin reprend $72K — risk-on global',s:'CoinDesk',t:'4h',i:'m',g:'BTCUSD'},
+    {h:'DXY sous 99 — dollar sous pression',s:'FT',t:'5h',i:'m',g:'DXY'},
+    {h:'BOJ surveille USDJPY — intervention possible au-dessus 160',s:'Nikkei',t:'6h',i:'m',g:'USDJPY'},
+    {h:'Strait of Hormuz partiellement rouvert',s:'OilPrice',t:'7h',i:'h',g:'WTI'},
   ];
-  document.getElementById('nfeed').innerHTML = F.map(n=>`
-    <div class="ni">
-      <div class="ndot d${n.i}"></div>
-      <div class="nbody">
-        <div class="nhl">${n.h}</div>
-        <div class="nmeta"><span>${n.s}</span><span>Il y a ${n.t}</span><span class="ntag">${n.g}</span></div>
-      </div>
-    </div>`).join('');
+  document.getElementById('nfeed').innerHTML=F.map(n=>`<div class="ni"><div class="ndot d${n.i}"></div><div class="nbody"><div class="nhl">${n.h}</div><div class="nmeta"><span>${n.s}</span><span>Il y a ${n.t}</span><span class="ntag">${n.g}</span></div></div></div>`).join('');
 }
 
-function renderCal() {
-  const E=[
-    {t:'08h30',n:'CPI Core USA — mars m/m',c:'USD',i:'h'},
-    {t:'10h00',n:'Confiance consommateurs Michigan',c:'USD',i:'m'},
-    {t:'12h30',n:'Discours Jerome Powell (Fed)',c:'USD',i:'h'},
-    {t:'14h30',n:'Inventaires pétrole EIA',c:'USD',i:'m'},
-    {t:'16h00',n:'Earnings — après clôture US',c:'USD',i:'h'},
-  ];
-  document.getElementById('cal').innerHTML = E.map(e=>`
-    <div class="crow">
-      <div class="ct">${e.t} EST</div>
-      <div class="cn">${e.n} <span class="cc">${e.c}</span></div>
-      <div class="i${e.i}">${e.i==='h'?'●●●':e.i==='m'?'●●○':'●○○'}</div>
-    </div>`).join('');
+function imp(t){const l=t.toLowerCase();return/war|crash|fed|cpi|crisis|surge|attack|conflict/.test(l)?'h':/rise|fall|bank|rate|oil|gold|dollar/.test(l)?'m':'l';}
+function ntag(t){const l=t.toLowerCase();return/gold|xau/.test(l)?'XAUUSD':/bitcoin|btc|crypto/.test(l)?'BTCUSD':/nasdaq|nvda|tech/.test(l)?'NAS100':/oil|opec|wti/.test(l)?'WTI':/euro|eur/.test(l)?'EURUSD':/yen|boj|japan/.test(l)?'USDJPY':/fed|dollar|dxy/.test(l)?'MACRO':/war|sanction|conflict/.test(l)?'GÉO':'';}
+function timeAgo(ds){if(!ds)return'—';const m=(Date.now()-new Date(ds))/60000;return m<60?`Il y a ${Math.round(m)}min`:m<1440?`Il y a ${Math.round(m/60)}h`:`Il y a ${Math.round(m/1440)}j`;}
+
+// ── CALENDAR VIA VERCEL ───────────────────────────────────────────────
+async function loadCalendar(){
+  try{
+    const r=await fetch('/api/calendar');
+    const d=await r.json();
+    if(d.events?.length){
+      document.getElementById('cal').innerHTML=d.events.map(e=>`
+        <div class="crow">
+          <div class="ct">${e.time}</div>
+          <div class="cn">${e.name} <span class="cc">${e.currency}</span></div>
+          <div class="i${e.impact==='high'?'h':e.impact==='med'?'m':'l'}">${e.impact==='high'?'●●●':e.impact==='med'?'●●○':'●○○'}</div>
+        </div>`).join('');
+    }
+  }catch{renderFallbackCal();}
 }
 
-function refreshAll(){fetchPrices();startCD();toast('Données mises à jour');}
-function refreshSetups(){if(Object.keys(px).length>0){buildSetups();toast('Setups régénérés');}else{toast('Attends les prix...');}}
+function renderFallbackCal(){
+  const E=[{t:'08h30',n:'CPI Core USA',c:'USD',i:'h'},{t:'12h30',n:'Discours Powell (Fed)',c:'USD',i:'h'},{t:'14h30',n:'Inventaires pétrole EIA',c:'USD',i:'m'},{t:'16h00',n:'Earnings — après clôture',c:'USD',i:'h'}];
+  document.getElementById('cal').innerHTML=E.map(e=>`<div class="crow"><div class="ct">${e.t} EST</div><div class="cn">${e.n} <span class="cc">${e.c}</span></div><div class="i${e.i}">${e.i==='h'?'●●●':e.i==='m'?'●●○':'●○○'}</div></div>`).join('');
+}
+
+function refreshAll(){fetchPrices();loadNews('forex gold oil markets geopolitical',null);loadCalendar();startCD();toast('Données mises à jour');}
 function toast(msg){const t=document.getElementById('tel');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 </script>
 </body>
