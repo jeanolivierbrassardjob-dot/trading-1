@@ -12,46 +12,12 @@ export default async function handler(req, res) {
   const { prices } = req.body;
   if (!prices) return res.status(400).json({ error: 'Prix manquants' });
 
-  const prompt = `Tu es un analyste de marché expert en swing trading H4 pour un trader FTMO.
+  const prompt = `Analyste swing trading H4 FTMO. Prix actuels: XAUUSD=${prices.xau}, NAS100=${prices.nas}, WTI=${prices.oil}, EURUSD=${prices.eur}, BTCUSD=${prices.btc}, USDJPY=${prices.jpy}, VIX=${prices.vix}, DXY=${prices.dxy}. Date: ${new Date().toLocaleString('fr-CA')}.
 
-Prix actuels en temps réel :
-- XAUUSD (Or spot) : ${prices.xau || 'N/A'}
-- NAS100 (Nasdaq) : ${prices.nas || 'N/A'}
-- WTICOUSD (Pétrole WTI) : ${prices.oil || 'N/A'}
-- EURUSD : ${prices.eur || 'N/A'}
-- BTCUSD : ${prices.btc || 'N/A'}
-- USDJPY : ${prices.jpy || 'N/A'}
-- VIX : ${prices.vix || 'N/A'}
-- DXY : ${prices.dxy || 'N/A'}
-- Date/heure : ${new Date().toLocaleString('fr-CA')}
+Donne les 3 meilleurs setups H4. JSON uniquement:
+{"setups":[{"symbol":"XAUUSD","direction":"bull","rating":8.5,"why":"2 phrases max en français","scalein1_zone":"4720-4730","scalein1_note":"raison","scalein2_zone":"4700-4710","scalein2_note":"raison","sl_zone":"4685","tags":["tag1"]}]}
 
-Identifie les 3 MEILLEURS setups swing H4 disponibles MAINTENANT parmi : XAUUSD, NAS100, WTICOUSD, EURUSD, BTCUSD, USDJPY.
-
-Réponds UNIQUEMENT en JSON valide, format exact :
-{
-  "setups": [
-    {
-      "symbol": "XAUUSD",
-      "direction": "bull",
-      "rating": 8.5,
-      "why": "Explication courte en français (max 2 phrases)",
-      "scalein1_zone": "4720–4730",
-      "scalein1_note": "Raison du niveau",
-      "scalein2_zone": "4700–4710",
-      "scalein2_note": "Raison du niveau",
-      "sl_zone": "4685",
-      "tags": ["Setup actif", "Tendance intacte"]
-    }
-  ]
-}
-
-Règles :
-- direction : "bull" pour long, "bear" pour short, "wait" si pas clair
-- rating : entre 1 et 10, sois honnête
-- Zones scale in basées sur les VRAIS prix fournis
-- SL sous support significatif (long) ou au-dessus résistance (short)
-- Trie par rating décroissant
-- JSON uniquement, aucun texte avant ou après`;
+Règles: direction=bull/bear/wait, rating=1-10, zones basées sur prix réels, trier par rating desc, JSON seulement.`;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -61,9 +27,10 @@ Règles :
         'x-api-key': key,
         'anthropic-version': '2023-06-01'
       },
+      signal: AbortSignal.timeout(8000),
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
         messages: [{ role: 'user', content: prompt }]
       })
     });
