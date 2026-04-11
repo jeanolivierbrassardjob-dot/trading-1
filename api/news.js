@@ -20,10 +20,10 @@ export default async function handler(req, res) {
 
     const articles = (d.data || []).map(a => ({
       title: a.title,
-      url: a.url,
+      url: a.url || '#',
       source: a.source,
-      published: a.published_at,
-      description: a.description,
+      published: a.published_at || new Date().toISOString(),
+      description: a.description || '',
     }));
 
     return res.status(200).json({ articles });
