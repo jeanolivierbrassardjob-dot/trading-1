@@ -394,11 +394,18 @@ async function loadNews(q, btn){
   if(btn){document.querySelectorAll('.nf').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
   document.getElementById('nfeed').innerHTML='<div class="loading-card"><span class="spin"></span>Chargement...</div>';
   try{
-    const r=await fetch(`/api/news?q=${encodeURIComponent(q)}`);
-    const d=await r.json();
-    if(d.articles?.length) renderNews(d.articles);
-    else renderFallbackNews();
-  }catch{renderFallbackNews();}
+    const r = await fetch(`/api/news?q=${encodeURIComponent(q)}`);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    if(d.articles && d.articles.length > 0){
+      renderNews(d.articles);
+    } else {
+      renderFallbackNews();
+    }
+  } catch(e) {
+    console.error('News error:', e);
+    renderFallbackNews();
+  }
 }
 
 function renderNews(arts){
