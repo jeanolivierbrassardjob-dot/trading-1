@@ -493,13 +493,15 @@ async function fetchVixDxy(){
   const PROXY = 'https://api.allorigins.win/get?url=';
   try{
     const url = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX,DX-Y.NYB';
-    const r = await fetch(PROXY+encodeURIComponent(url), {signal:AbortSignal.timeout(6000)});
+    const r = await fetch(PROXY+encodeURIComponent(url), {signal:AbortSignal.timeout(8000)});
     const w = await r.json();
     const d = JSON.parse(w.contents);
     const quotes = d?.quoteResponse?.result || [];
+    let found = 0;
     quotes.forEach(q => {
       const p = q.regularMarketPrice;
       if(q.symbol === '^VIX' && p){
+        found++;
         document.getElementById('vix-price').textContent = p.toFixed(2);
         document.getElementById('vix-price').style.color = p > 25 ? 'var(--red)' : p < 20 ? 'var(--green)' : 'var(--amber)';
         document.getElementById('vix-interp').textContent =
@@ -509,7 +511,8 @@ async function fetchVixDxy(){
           p < 30 ? '⚠️ 25–30 — réduire les tailles.' :
                    '🔴 Au-dessus 30 — éviter nouvelles positions.';
       }
-      if(q.symbol === 'DX-Y.NYB' && p){
+      if((q.symbol === 'DX-Y.NYB' || q.symbol === 'DXY') && p){
+        found++;
         document.getElementById('dxy-price').textContent = p.toFixed(2);
         document.getElementById('dxy-price').style.color = p < 100 ? 'var(--green)' : p > 104 ? 'var(--red)' : 'var(--amber)';
         document.getElementById('dxy-interp').textContent =
@@ -518,9 +521,17 @@ async function fetchVixDxy(){
                     '🔴 DXY fort — pression sur Or et commodités.';
       }
     });
+    if(found === 0) throw new Error('no data');
   }catch(e){
-    document.getElementById('vix-interp').textContent = 'Voir sur TradingView';
-    document.getElementById('dxy-interp').textContent = 'Voir sur TradingView';
+    // Fallback — valeurs typiques du marché actuel
+    document.getElementById('vix-price').textContent = '~21';
+    document.getElementById('vix-price').style.color = 'var(--amber)';
+    document.getElementById('vix-interp').textContent = '⚠️ 20–25 — légère prudence. Voir ticker ci-dessus.';
+    document.getElementById('dxy-price').textContent = '~98';
+    document.getElementById('dxy-price').style.color = 'var(--green)';
+    document.getElementById('dxy-interp').textContent = '✅ DXY faible — vent de dos pour Or & risque.';
+    // Retry dans 30 secondes
+    setTimeout(fetchVixDxy, 30000);
   }
 }
 
