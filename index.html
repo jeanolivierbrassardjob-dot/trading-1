@@ -183,12 +183,14 @@ a{color:inherit;text-decoration:none;}
 
 <div class="lbl">Nouvelles financières</div>
 <div class="nfltrs">
-  <button class="nf on" onclick="loadNews('forex gold oil markets geopolitical',this)">Tout</button>
-  <button class="nf" onclick="loadNews('forex EUR USD JPY',this)">Forex</button>
-  <button class="nf" onclick="loadNews('gold XAU safe haven',this)">Or</button>
-  <button class="nf" onclick="loadNews('Bitcoin BTC crypto',this)">Crypto</button>
-  <button class="nf" onclick="loadNews('crude oil WTI OPEC',this)">Pétrole</button>
-  <button class="nf" onclick="loadNews('geopolitical conflict war',this)">Géo</button>
+  <button class="nf on" onclick="loadNews('gold price XAU USD forex oil stock market',this)">Tout</button>
+  <button class="nf" onclick="loadNews('XAUUSD gold price bullion Federal Reserve',this)">Or</button>
+  <button class="nf" onclick="loadNews('Nasdaq 100 NAS100 tech stocks S&P 500',this)">NAS100</button>
+  <button class="nf" onclick="loadNews('crude oil WTI OPEC petroleum barrel price',this)">Pétrole</button>
+  <button class="nf" onclick="loadNews('EUR USD euro dollar Federal Reserve ECB',this)">EURUSD</button>
+  <button class="nf" onclick="loadNews('USD JPY yen BOJ Bank of Japan intervention',this)">USDJPY</button>
+  <button class="nf" onclick="loadNews('Bitcoin BTC cryptocurrency market',this)">BTC</button>
+  <button class="nf" onclick="loadNews('geopolitical risk war Iran sanctions Middle East',this)">Géo</button>
 </div>
 <div class="news-feed" id="nfeed">
   <div class="loading-card"><span class="spin"></span>Chargement des nouvelles...</div>
@@ -223,11 +225,10 @@ const PROXY = 'https://api.allorigins.win/get?url=';
 window.onload = () => {
   tick(); setInterval(tick,1000);
   fetchPrices();
-  loadNews('forex gold oil markets geopolitical', null);
+  loadNews('gold price XAU USD forex oil stock market', null);
   loadCalendar();
   startCD();
-  // News refresh toutes les 30 minutes
-  setInterval(()=>loadNews('forex gold oil markets geopolitical',null), 30*60*1000);
+  setInterval(()=>loadNews('gold price XAU USD forex oil stock market',null), 30*60*1000);
   // Setups refresh toutes les 4 heures (aligné sur bougie H4)
   setInterval(()=>{
     if(Date.now()-lastSetupTime >= SETUP_INTERVAL_MS && Object.keys(px).length>0) fetchSetups();
@@ -448,7 +449,7 @@ function renderFallbackCal(){
 
 function refreshAll(){
   fetchPrices();
-  loadNews('forex gold oil markets geopolitical',null);
+  loadNews('gold price XAU USD forex oil stock market',null);
   loadCalendar();
   startCD();
   toast('Prix et news mis à jour');
