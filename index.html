@@ -175,8 +175,8 @@ a{color:inherit;text-decoration:none;}
         {"proName": "OANDA:EURUSD", "title": "EUR/USD"},
         {"proName": "OANDA:USDJPY", "title": "USD/JPY"},
         {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
-        {"proName": "TVC:VIX", "title": "VIX"},
-        {"proName": "TVC:DXY", "title": "DXY"}
+        {"proName": "CAPITALCOM:VIX", "title": "VIX"},
+        {"proName": "CAPITALCOM:DXY", "title": "DXY"}
       ],
       "showSymbolLogo": false,
       "colorTheme": "dark",
@@ -245,23 +245,15 @@ a{color:inherit;text-decoration:none;}
       </script>
     </div>
   </div>
-  <div class="tv-card">
-    <div class="tv-card-label">VIX — Peur</div>
-    <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-      {"symbol":"TVC:VIX","width":"100%","height":150,"locale":"fr","dateRange":"1D","colorTheme":"dark","isTransparent":true,"autosize":false,"largeChartUrl":""}
-      </script>
-    </div>
+  <div class="tv-card" style="padding:12px;display:flex;flex-direction:column;justify-content:space-between;min-height:150px;">
+    <div class="tv-card-label" style="padding:0 0 8px;">VIX — Peur du marché</div>
+    <div id="vix-price" style="font-family:var(--mono);font-size:28px;font-weight:500;color:var(--text);">—</div>
+    <div id="vix-interp" style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">Chargement...</div>
   </div>
-  <div class="tv-card">
-    <div class="tv-card-label">DXY — Dollar</div>
-    <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-      {"symbol":"TVC:DXY","width":"100%","height":150,"locale":"fr","dateRange":"1D","colorTheme":"dark","isTransparent":true,"autosize":false,"largeChartUrl":""}
-      </script>
-    </div>
+  <div class="tv-card" style="padding:12px;display:flex;flex-direction:column;justify-content:space-between;min-height:150px;">
+    <div class="tv-card-label" style="padding:0 0 8px;">DXY — Dollar Index</div>
+    <div id="dxy-price" style="font-family:var(--mono);font-size:28px;font-weight:500;color:var(--text);">—</div>
+    <div id="dxy-interp" style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;">Chargement...</div>
   </div>
 </div>
 
@@ -313,6 +305,7 @@ window.onload = () => {
   loadCalendar();
   fetchSetups();
   updateSentiment();
+  fetchVixDxy();
   // News refresh toutes les 30 min
   setInterval(()=>loadNews('gold price XAU USD forex oil stock market',null), 30*60*1000);
   // Setups refresh toutes les 4h
@@ -494,6 +487,41 @@ function refreshNews(){
   const q = activeBtn ? activeBtn.getAttribute('onclick').match(/'([^']+)'/)?.[1] : 'gold price XAU USD forex oil stock market';
   loadNews(q, activeBtn);
   toast('News mises à jour');
+}
+
+async function fetchVixDxy(){
+  const PROXY = 'https://api.allorigins.win/get?url=';
+  try{
+    const url = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=%5EVIX,DX-Y.NYB';
+    const r = await fetch(PROXY+encodeURIComponent(url), {signal:AbortSignal.timeout(6000)});
+    const w = await r.json();
+    const d = JSON.parse(w.contents);
+    const quotes = d?.quoteResponse?.result || [];
+    quotes.forEach(q => {
+      const p = q.regularMarketPrice;
+      if(q.symbol === '^VIX' && p){
+        document.getElementById('vix-price').textContent = p.toFixed(2);
+        document.getElementById('vix-price').style.color = p > 25 ? 'var(--red)' : p < 20 ? 'var(--green)' : 'var(--amber)';
+        document.getElementById('vix-interp').textContent =
+          p < 15 ? '✅ Très bas — excellent pour swing H4.' :
+          p < 20 ? '✅ Sous 20 — marché calme, favorable.' :
+          p < 25 ? '⚠️ 20–25 — légère prudence, tailles ok.' :
+          p < 30 ? '⚠️ 25–30 — réduire les tailles.' :
+                   '🔴 Au-dessus 30 — éviter nouvelles positions.';
+      }
+      if(q.symbol === 'DX-Y.NYB' && p){
+        document.getElementById('dxy-price').textContent = p.toFixed(2);
+        document.getElementById('dxy-price').style.color = p < 100 ? 'var(--green)' : p > 104 ? 'var(--red)' : 'var(--amber)';
+        document.getElementById('dxy-interp').textContent =
+          p < 100 ? '✅ DXY faible — vent de dos pour Or & risque.' :
+          p < 104 ? '⚠️ DXY neutre — surveiller la direction.' :
+                    '🔴 DXY fort — pression sur Or et commodités.';
+      }
+    });
+  }catch(e){
+    document.getElementById('vix-interp').textContent = 'Voir sur TradingView';
+    document.getElementById('dxy-interp').textContent = 'Voir sur TradingView';
+  }
 }
 
 function toast(msg){const t=document.getElementById('tel');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
