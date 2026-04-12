@@ -264,19 +264,31 @@ a{color:inherit;text-decoration:none;}
 </div>
 
 <!-- NEWS -->
-<div class="lbl">Nouvelles financières</div>
+<div class="lbl">Nouvelles financières — temps réel</div>
 <div class="nfltrs">
-  <button class="nf on" onclick="loadNews('gold price XAU USD forex oil stock market',this)">Tout</button>
-  <button class="nf" onclick="loadNews('XAUUSD gold price bullion Federal Reserve',this)">Or</button>
-  <button class="nf" onclick="loadNews('Nasdaq 100 NAS100 tech stocks earnings',this)">NAS100</button>
-  <button class="nf" onclick="loadNews('crude oil WTI OPEC petroleum barrel price',this)">Pétrole</button>
-  <button class="nf" onclick="loadNews('EUR USD euro dollar Federal Reserve ECB',this)">EURUSD</button>
-  <button class="nf" onclick="loadNews('USD JPY yen BOJ Bank Japan intervention',this)">USDJPY</button>
-  <button class="nf" onclick="loadNews('Bitcoin BTC cryptocurrency market price',this)">BTC</button>
-  <button class="nf" onclick="loadNews('geopolitical risk war Iran sanctions Middle East',this)">Géo</button>
+  <button class="nf on" onclick="switchNews('ALL_SYMBOLS',this)">Tout</button>
+  <button class="nf" onclick="switchNews('OANDA:XAUUSD',this)">Or</button>
+  <button class="nf" onclick="switchNews('OANDA:NAS100USD',this)">NAS100</button>
+  <button class="nf" onclick="switchNews('OANDA:WTICOUSD',this)">Pétrole</button>
+  <button class="nf" onclick="switchNews('OANDA:EURUSD',this)">EURUSD</button>
+  <button class="nf" onclick="switchNews('OANDA:USDJPY',this)">USDJPY</button>
+  <button class="nf" onclick="switchNews('BITSTAMP:BTCUSD',this)">BTC</button>
 </div>
-<div class="news-feed" id="nfeed">
-  <div class="loading-card"><span class="spin"></span>Chargement des nouvelles...</div>
+<div id="tv-news-wrap" style="background:var(--surface);border:1px solid var(--b);border-radius:12px;overflow:hidden;min-height:400px;">
+  <div class="tradingview-widget-container" style="height:400px;">
+    <div class="tradingview-widget-container__widget" style="height:400px;"></div>
+    <script id="tv-news-script" type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
+    {
+      "feedMode": "all_symbols",
+      "isTransparent": true,
+      "displayMode": "regular",
+      "width": "100%",
+      "height": 400,
+      "colorTheme": "dark",
+      "locale": "fr"
+    }
+    </script>
+  </div>
 </div>
 
 <!-- CALENDAR -->
@@ -482,12 +494,17 @@ function renderFallbackCal(){
   document.getElementById('cal').innerHTML=E.map(e=>`<div class="crow"><div class="ct">${e.t} EST</div><div class="cn">${e.n} <span class="cc">${e.c}</span></div><div class="i${e.i}">${e.i==='h'?'●●●':e.i==='m'?'●●○':'●○○'}</div></div>`).join('');
 }
 
-function refreshNews(){
-  const activeBtn = document.querySelector('.nf.on');
-  const q = activeBtn ? activeBtn.getAttribute('onclick').match(/'([^']+)'/)?.[1] : 'gold price XAU USD forex oil stock market';
-  loadNews(q, activeBtn);
-  toast('News mises à jour');
+function switchNews(symbol, btn){
+  document.querySelectorAll('.nf').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  const wrap = document.getElementById('tv-news-wrap');
+  const config = symbol === 'ALL_SYMBOLS'
+    ? `{"feedMode":"all_symbols","isTransparent":true,"displayMode":"regular","width":"100%","height":400,"colorTheme":"dark","locale":"fr"}`
+    : `{"feedMode":"symbol","symbol":"${symbol}","isTransparent":true,"displayMode":"regular","width":"100%","height":400,"colorTheme":"dark","locale":"fr"}`;
+  wrap.innerHTML = `<div class="tradingview-widget-container" style="height:400px;"><div class="tradingview-widget-container__widget" style="height:400px;"></div><script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>${config}<\/script></div>`;
 }
+
+function refreshNews(){ switchNews('ALL_SYMBOLS', document.querySelector('.nf.on')); toast('News rafraîchies'); }
 
 async function fetchVixDxy(){
   const PROXY = 'https://api.allorigins.win/get?url=';
